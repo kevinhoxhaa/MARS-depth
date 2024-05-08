@@ -17,17 +17,19 @@ Python 3.7
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+import keras
 import time
 from sklearn import metrics
 
-from keras.optimizers import Adam
-from keras.models import Model
-from keras.layers import Dense
-from keras.layers import Input
-from keras.layers import Flatten
-from keras.layers import Conv2D
-from keras.layers import BatchNormalization
-from keras.layers import Dropout
+from keras.api.optimizers import Adam
+from keras.api.models import Model
+from keras.api.layers import Dense
+from keras.api.layers import Input
+from keras.api.layers import Flatten
+from keras.api.layers import Conv2D
+from keras.api.layers import BatchNormalization
+from keras.api.layers import Dropout
+from keras.api import ops
 
 # set the directory
 import os
@@ -50,7 +52,7 @@ paper_result_list = []
 
 # define batch size and epochs
 batch_size = 128
-epochs = 120
+epochs = 150
 dense_layers = 1
 
 #define the model
@@ -92,7 +94,7 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
     return model
 
 
-num_conv_layers = [1, 2, 3, 4, 5, 6]
+num_conv_layers = [1, 2, 3, 4]
 # num_dense_layers = [1,2,3,4]
 avg_mae_list = []
 avg_val_mae_list = []
@@ -112,7 +114,7 @@ for n in num_conv_layers:
     avg_val_loss = []
 
     # Repeat i iteration to get the average result
-    for i in range(5):
+    for i in range(10):
         # instantiate the model
         keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
         # initial maximum error

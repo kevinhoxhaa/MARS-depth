@@ -3,9 +3,9 @@
 #SBATCH --job-name="MARS_RUN"
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=2
+#SBATCH --cpus-per-task=1
 #SBATCH --partition=compute
-#SBATCH --mem=4GB
+#SBATCH --mem=8GB
 #SBATCH --account=education-eemcs-courses-cse3000
 
 module load 2023r1
