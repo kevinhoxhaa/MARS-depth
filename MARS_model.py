@@ -28,13 +28,9 @@ from keras.api.layers import Flatten
 from keras.api.layers import Conv2D
 from keras.api.layers import BatchNormalization
 from keras.api.layers import Dropout
-from keras.api.layers import Activation
-from keras.api.layers import Conv1D
-from keras.api.layers import GlobalMaxPooling1D
-from keras.api.layers import Reshape
-from keras.api.layers import Dot
-from keras.api.layers import MaxPool1D
-from keras.api.layers import Concatenate
+
+#Get the PointNet model
+from pointnet import pointnet_model
 
 # set the directory
 import os
@@ -105,9 +101,9 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
     return model
 
 
-# define the number of layers to test
+# define the number of layers to test for MARS
 num_conv_layers = [1, 2, 3, 4]
-# define the number of dense layers to test
+# define the number of dense layers to test for MARS
 num_dense_layers = [1, 2, 3, 4]
 
 avg_mae_list = []
@@ -137,8 +133,8 @@ for n in num_layers:
         # instantiate the model
         if architecture_type == 'MARS':
             keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
-        # elif architecture_type == 'POINTNET':
-        #     keypoint_model =
+        elif architecture_type == 'POINTNET':
+            keypoint_model = pointnet_model(featuremap_train[0].shape, 57)
         # initial maximum error
         score_min = 10
         start_time = time.time()
