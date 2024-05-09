@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 20 14:59:44 2021
-
-@author: xxx
+@author: kevinhoxhaa
 """
 
 """
@@ -32,6 +30,9 @@ from keras.api.layers import Dropout
 #Get the PointNet model
 from pointnet import pointnet_model
 
+# Import the plot_layers class
+from plot_layers import PlotLayers
+
 # set the directory
 import os
 path = os.getcwd()
@@ -57,12 +58,20 @@ epochs = 150
 
 # If you are testing the convolutional layers, this value is 'convolutional',
 # if you are testing the dense layers, this value is 'dense'
-validation_type = 'dense'
+validation_type = 'convolutional'
 
 # If you are using the PointNet architecture, set the architecture_type to 'POINTNET'
 # If you are using the MARS architecture, set the architecture_type to 'MARS'
-architecture_type = 'MARS'
+architecture_type = 'POINTNET'
 
+if architecture_type == 'POINTNET':
+    featuremap_train = np.reshape(featuremap_train, (-1, 64, 5))
+    featuremap_validate = np.reshape(featuremap_validate, (-1, 64, 5))
+    featuremap_test = np.reshape(featuremap_test, (-1, 64, 5))
+
+    labels_train = np.reshape(labels_train, (-1, 57))
+    labels_validate = np.reshape(labels_validate, (-1, 57))
+    labels_test = np.reshape(labels_test, (-1, 57))
 
 # define the model
 def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
@@ -78,7 +87,8 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
     for i in range(num_conv_layers):
         layer = Conv2D(16 * (2 ** i), kernel_size=(3, 3), activation='relu', strides=(1, 1), padding='same')(layer)
         layer = Dropout(0.3)(layer)
-        layer = BatchNormalization(momentum=0.95)(layer)
+
+    layer = BatchNormalization(momentum=0.95)(layer)
 
     # Flatten the output of the convolutional layers
     dense_layer = Flatten()(layer)
@@ -102,7 +112,7 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
 
 
 # define the number of layers to test for MARS
-num_conv_layers = [1, 2, 3, 4]
+num_conv_layers = [1]
 # define the number of dense layers to test for MARS
 num_dense_layers = [1, 2, 3, 4]
 
@@ -129,12 +139,12 @@ for n in num_layers:
     avg_val_loss = []
 
     # Repeat i iteration to get the average result
-    for i in range(10):
+    for i in range(1):
         # instantiate the model
         if architecture_type == 'MARS':
             keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
         elif architecture_type == 'POINTNET':
-            keypoint_model = pointnet_model(featuremap_train[0].shape, 57)
+            keypoint_model = pointnet_model(64, 5, 57)
         # initial maximum error
         score_min = 10
         start_time = time.time()
@@ -255,78 +265,11 @@ for n in num_layers:
     np.save(output_filename + ".npy", mean_paper_result_list)
     np.savetxt(output_filename + ".txt", mean_paper_result_list,fmt='%.2f')
 
-# Plot the average MAEs, Losses and Time Taken across different numbers of convolutional layers
-if validation_type == 'convolutional':
-    # Plot the average MAEs across different numbers of convolutional layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_conv_layers, avg_val_mae_list, marker='o', linestyle='-', color='b')
-    plt.title('Average Model Validation MAE by Number of Convolutional Layers')
-    plt.xlabel('Number of Convolutional Layers')
-    plt.ylabel('Average MAE')
-    plt.xticks(num_conv_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/avg_mae.png')
-    plt.show()
-    plt.close()
+if architecture_type == 'MARS':
+    # Plot the results for the number of layers
+    plt_layers = PlotLayers(num_conv_layers, num_dense_layers, avg_val_mae_list, avg_val_loss_list, times)
 
-    # Plot the average Losses across different numbers of convolutional layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_conv_layers, avg_val_loss_list, marker='o', linestyle='-', color='r')
-    plt.title('Average Model Validation Loss by Number of Convolutional Layers')
-    plt.xlabel('Number of Convolutional Layers')
-    plt.ylabel('Average Loss')
-    plt.xticks(num_conv_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/avg_loss.png')
-    plt.show()
-    plt.close()
-
-    # Plot the time taken to train the model across different numbers of convolutional layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_conv_layers, times, marker='o', linestyle='-', color='g')
-    plt.title('Time Taken to Train Model by Number of Convolutional Layers')
-    plt.xlabel('Number of Convolutional Layers')
-    plt.ylabel('Time Taken (s)')
-    plt.xticks(num_conv_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/time_taken.png')
-    plt.show()
-    plt.close()
-
-# Plot the average MAEs, Losses and Time Taken across different numbers of dense layers
-elif validation_type == 'dense':
-    # Plot the average MAEs across different numbers of dense layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_dense_layers, avg_val_mae_list, marker='o', linestyle='-', color='b')
-    plt.title('Average Model Validation MAE by Number of Dense Layers')
-    plt.xlabel('Number of Dense Layers')
-    plt.ylabel('Average MAE')
-    plt.xticks(num_dense_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/avg_mae.png')
-    plt.show()
-    plt.close()
-
-    # Plot the average Losses across different numbers of dense layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_dense_layers, avg_val_loss_list, marker='o', linestyle='-', color='r')
-    plt.title('Average Model Validation Loss by Number of Dense Layers')
-    plt.xlabel('Number of Dense Layers')
-    plt.ylabel('Average Loss')
-    plt.xticks(num_dense_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/avg_loss.png')
-    plt.show()
-    plt.close()
-
-    # Plot the time taken to train the model across different numbers of dense layers
-    plt.figure(figsize=(10, 5))
-    plt.plot(num_dense_layers, times, marker='o', linestyle='-', color='g')
-    plt.title('Time Taken to Train Model by Number of Dense Layers')
-    plt.xlabel('Number of Dense Layers')
-    plt.ylabel('Time Taken (s)')
-    plt.xticks(num_dense_layers)
-    plt.grid(True)
-    plt.savefig('model/plots/time_taken.png')
-    plt.show()
-    plt.close()
+    if validation_type == "convolutional":
+        plt_layers.plot_conv()
+    elif validation_type == "dense":
+        plt_layers.plot_dense()

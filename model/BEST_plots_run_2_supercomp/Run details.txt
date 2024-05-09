@@ -1,0 +1,1 @@
+This was ran on the supercomputer with 150 epochs, 10 validation iterations, and 4 conv layers.

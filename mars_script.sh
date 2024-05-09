@@ -12,10 +12,10 @@ module load 2023r1
 module load openmpi
 module load python/3.9
 # Create a virtual environment
-python -m venv ~/myenvcpu
+python -m venv ~/myenvgpu
 
 # Activate the virtual environment
-source ~/myenvcpu/bin/activate
+source ~/myenvgpu/bin/activate
 
 # Install TensorFlow (which includes Keras)
 pip install tensorflow
