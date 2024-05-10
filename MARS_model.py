@@ -142,8 +142,13 @@ for n in num_layers:
     for i in range(1):
         # instantiate the model
         if architecture_type == 'MARS':
-            keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
+            # If the architecture type is MARS, define the model with the given number of convolutional and dense layers
+            if validation_type == 'convolutional':
+                keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
+            else:
+                keypoint_model = define_CNN(featuremap_train[0].shape, 57, 2, n)
         elif architecture_type == 'POINTNET':
+            # If the architecture type is PointNet, define the model with the number of points, features, and classes
             keypoint_model = pointnet_model(64, 5, 57)
         # initial maximum error
         score_min = 10
