@@ -65,13 +65,11 @@ validation_type = 'convolutional'
 architecture_type = 'POINTNET'
 
 if architecture_type == 'POINTNET':
+    # Reshape the feature maps from 8x8x5 to 64x5
     featuremap_train = np.reshape(featuremap_train, (-1, 64, 5))
     featuremap_validate = np.reshape(featuremap_validate, (-1, 64, 5))
     featuremap_test = np.reshape(featuremap_test, (-1, 64, 5))
 
-    labels_train = np.reshape(labels_train, (-1, 57))
-    labels_validate = np.reshape(labels_validate, (-1, 57))
-    labels_test = np.reshape(labels_test, (-1, 57))
 
 # define the model
 def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
@@ -112,9 +110,9 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
 
 
 # define the number of layers to test for MARS
-num_conv_layers = [1]
+list_num_conv_layers = [2]
 # define the number of dense layers to test for MARS
-num_dense_layers = [1, 2, 3, 4]
+list_num_dense_layers = [1, 2, 3, 4]
 
 avg_mae_list = []
 avg_val_mae_list = []
@@ -125,7 +123,7 @@ times = []
 # loop through the number of layers to test
 # if validation_type is 'layer', test the number of convolutional layers
 # else, test the number of dense layers
-num_layers = num_conv_layers if validation_type == 'convolutional' else num_dense_layers
+num_layers = list_num_conv_layers if validation_type == 'convolutional' else list_num_dense_layers
 for n in num_layers:
     if validation_type == 'convolutional':
         print('Number of Convolutional Layers:', n)
@@ -144,9 +142,9 @@ for n in num_layers:
         if architecture_type == 'MARS':
             # If the architecture type is MARS, define the model with the given number of convolutional and dense layers
             if validation_type == 'convolutional':
-                keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
+                keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, list_num_dense_layers[0])
             else:
-                keypoint_model = define_CNN(featuremap_train[0].shape, 57, 2, n)
+                keypoint_model = define_CNN(featuremap_train[0].shape, 57, list_num_conv_layers[0], n)
         elif architecture_type == 'POINTNET':
             # If the architecture type is PointNet, define the model with the number of points, features, and classes
             keypoint_model = pointnet_model(64, 5, 57)
@@ -272,7 +270,7 @@ for n in num_layers:
 
 if architecture_type == 'MARS':
     # Plot the results for the number of layers
-    plt_layers = PlotLayers(num_conv_layers, num_dense_layers, avg_val_mae_list, avg_val_loss_list, times)
+    plt_layers = PlotLayers(list_num_conv_layers, list_num_dense_layers, avg_val_mae_list, avg_val_loss_list, times)
 
     if validation_type == "convolutional":
         plt_layers.plot_conv()
