@@ -2,11 +2,13 @@ import matplotlib.pyplot as plt
 
 
 class PlotLayers:
-    def __init__(self, num_conv_layers, num_dense_layers, avg_val_mae_list, avg_val_loss_list, times):
+    def __init__(self, num_conv_layers, num_dense_layers, avg_val_mae_list, avg_val_loss_list, boxplot_mae_list, boxplot_loss_list, times):
         self.num_conv_layers = num_conv_layers
         self.num_dense_layers = num_dense_layers
         self.avg_val_mae_list = avg_val_mae_list
         self.avg_val_loss_list = avg_val_loss_list
+        self.boxplot_mae_list = boxplot_mae_list
+        self.boxplot_loss_list = boxplot_loss_list
         self.times = times
 
     def plot_conv(self):
@@ -49,6 +51,34 @@ class PlotLayers:
         plt.show()
         plt.close()
 
+        # Plot the boxplots of the MAEs across different numbers of convolutional layers
+        plt.figure(figsize=(10, 5))
+        bplot = plt.boxplot(self.boxplot_mae_list, patch_artist=True)
+        plt.title('Model Validation MAE by Number of Convolutional Layers')
+        plt.xlabel('Number of Convolutional Layers')
+        plt.ylabel('MAE')
+        plt.xticks(self.num_conv_layers)
+        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
+        for patch, color in zip(bplot['boxes'], colors):
+            patch.set_facecolor(color)
+        plt.savefig('model/plots/boxplot_mae.png')
+        plt.show()
+        plt.close()
+
+        # Plot the boxplots of the Losses across different numbers of convolutional layers
+        plt.figure(figsize=(10, 5))
+        bplot = plt.boxplot(self.boxplot_loss_list, patch_artist=True)
+        plt.title('Model Validation Loss by Number of Convolutional Layers')
+        plt.xlabel('Number of Convolutional Layers')
+        plt.ylabel('Loss')
+        plt.xticks(self.num_conv_layers)
+        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
+        for patch, color in zip(bplot['boxes'], colors):
+            patch.set_facecolor(color)
+        plt.savefig('model/plots/boxplot_loss.png')
+        plt.show()
+        plt.close()
+
     def plot_dense(self):
         '''
         Plot the average MAEs, Losses and Time Taken across different numbers of dense layers
@@ -86,5 +116,33 @@ class PlotLayers:
         plt.xticks(self.num_dense_layers)
         plt.grid(True)
         plt.savefig('model/plots/time_taken.png')
+        plt.show()
+        plt.close()
+
+        # Plot the boxplots of the MAEs across different numbers of dense layers
+        plt.figure(figsize=(10, 5))
+        bplot = plt.boxplot(self.boxplot_mae_list, patch_artist=True)
+        plt.title('Model Validation MAE by Number of Dense Layers')
+        plt.xlabel('Number of Dense Layers')
+        plt.ylabel('MAE')
+        plt.xticks(self.num_dense_layers)
+        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
+        for patch, color in zip(bplot['boxes'], colors):
+            patch.set_facecolor(color)
+        plt.savefig('model/plots/boxplot_mae.png')
+        plt.show()
+        plt.close()
+
+        # Plot the boxplots of the Losses across different numbers of dense layers
+        plt.figure(figsize=(10, 5))
+        bplot = plt.boxplot(self.boxplot_loss_list, patch_artist=True)
+        plt.title('Model Validation Loss by Number of Dense Layers')
+        plt.xlabel('Number of Dense Layers')
+        plt.ylabel('Loss')
+        plt.xticks(self.num_dense_layers)
+        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
+        for patch, color in zip(bplot['boxes'], colors):
+            patch.set_facecolor(color)
+        plt.savefig('model/plots/boxplot_loss.png')
         plt.show()
         plt.close()
