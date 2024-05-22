@@ -3,7 +3,6 @@ import keras
 
 from keras.api.layers import Dense
 from keras.api.layers import BatchNormalization
-from keras.api.layers import Activation
 from keras.api.layers import Conv1D
 from keras.api.layers import GlobalMaxPooling1D
 from keras.api.layers import Reshape
@@ -34,26 +33,23 @@ def pointnet_model(num_points, num_features, num_classes):
     # Fully connected layers
     fc_512 = dense_layer(global_features, filters=512, name="fc_512")
     fc_256 = dense_layer(fc_512, filters=256, name="fc_256")
-    # fc_128 = dense_layer(fc_256, filters=128, name="fc_128")
-    outputs = Dense(num_classes, activation="softmax", name="outputs")(fc_256)
+    outputs = Dense(num_classes, activation="linear", name="outputs")(fc_256)
 
     model = keras.Model(input_points, outputs)
-    opt = keras.optimizers.Adam(learning_rate=0.01, beta_1=0.5)
+    opt = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.5)
     # compile the model
     model.compile(loss='mse', optimizer=opt, metrics=['mae', 'mse', 'mape', keras.metrics.RootMeanSquaredError()])
     return model
 
 
 def conv_layer(x, filters, name):
-    x = Conv1D(filters, kernel_size=1, padding="valid", name=f"{name}_conv")(x)
-    x = BatchNormalization(name=f"{name}_batch_norm")(x)
-    return Activation("relu", name=f"{name}_relu")(x)
+    x = Conv1D(filters, kernel_size=3, activation='relu', padding="same", name=f"{name}_conv")(x)
+    return BatchNormalization(name=f"{name}_batch_norm")(x)
 
 
 def dense_layer(x, filters, name):
-    x = Dense(filters, name=f"{name}_dense")(x)
-    x = BatchNormalization(name=f"{name}_batch_norm")(x)
-    return Activation("relu", name=f"{name}_relu")(x)
+    x = Dense(filters, name=f"{name}_dense", activation='relu')(x)
+    return BatchNormalization(name=f"{name}_batch_norm")(x)
 
 
 def T_net(inputs, num_features, name):
@@ -70,7 +66,7 @@ def T_net(inputs, num_features, name):
     x = conv_layer(inputs, filters=64, name=f"{name}_1")
     x = conv_layer(x, filters=128, name=f"{name}_2")
     x = conv_layer(x, filters=1024, name=f"{name}_3")
-    x = GlobalMaxPooling1D()(x)
+    x = GlobalMaxPooling1D(name="T_net_global_features")(x)
     x = dense_layer(x, filters=512, name=f"{name}_1_1")
     x = dense_layer(x, filters=256, name=f"{name}_2_1")
     transformed_features = Dense(
