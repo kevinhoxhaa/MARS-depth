@@ -29,6 +29,7 @@ from keras.api.layers import Dropout
 
 # Get the PointNet model
 from pointnet import pointnet_model
+from pointnet import plot_barchart
 
 # Import the plot_layers class
 from plot_layers import PlotLayers
@@ -54,6 +55,7 @@ paper_result_list = []
 # define batch size and epochs
 batch_size = 128
 epochs = 150
+np.random.seed(0)
 
 # If you are testing the convolutional layers, this value is 'convolutional',
 # if you are testing the dense layers, this value is 'dense'
@@ -61,13 +63,18 @@ validation_type = 'dense'
 
 # If you are using the PointNet architecture, set the architecture_type to 'POINTNET'
 # If you are using the MARS architecture, set the architecture_type to 'MARS'
-architecture_type = 'MARS'
+architecture_type = 'POINTNET'
 
 if architecture_type == 'POINTNET':
     # Reshape the feature maps from 8x8x5 to 64x5
     featuremap_train = np.reshape(featuremap_train, (-1, 64, 5))
     featuremap_validate = np.reshape(featuremap_validate, (-1, 64, 5))
     featuremap_test = np.reshape(featuremap_test, (-1, 64, 5))
+
+    # Shuffle the data
+    np.random.shuffle(featuremap_train)
+    np.random.shuffle(featuremap_validate)
+    np.random.shuffle(featuremap_test)
 
 
 # define the model
@@ -111,7 +118,7 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
 # define the number of layers to test for MARS
 num_conv_layers = [2]
 # define the number of dense layers to test for MARS
-num_dense_layers = [1, 2, 3, 4]
+num_dense_layers = [2]
 
 avg_mae_list = []
 avg_val_mae_list = []
@@ -119,6 +126,8 @@ boxplot_mae_list = []
 avg_loss_list = []
 avg_val_loss_list = []
 boxplot_loss_list = []
+mars_scores = []
+pointnet_scores = []
 times = []
 
 # loop through the number of layers to test
@@ -142,7 +151,7 @@ for n in num_layers:
     boxplot_mae_list.append([])
 
     # Repeat i iteration to get the average result
-    for i in range(15):
+    for i in range(1):
         # instantiate the model
         if architecture_type == 'MARS':
             # If the architecture type is MARS, define the model with the given number of convolutional and dense layers
@@ -248,7 +257,10 @@ for n in num_layers:
 
         # save the best model so far
         if score_test[1] < score_min:
-            keypoint_model.save(output_direct + 'MARS_' + str(n) + '.h5')
+            if architecture_type == 'POINTNET':
+                keypoint_model.save(output_direct + 'PointNet.h5')
+            else:
+                keypoint_model.save(output_direct + 'MARS_' + str(n) + '.h5')
             score_min = score_test[1]
 
         avg_mae.append(history.history['mae'][-1])
@@ -273,6 +285,13 @@ for n in num_layers:
     mean_paper_result_list = np.concatenate(
         (np.mean(paper_result_list, axis=0), mean_mae.reshape(20, 1), mean_rmse.reshape(20, 1)), axis=1)
 
+    # append the result to the list
+    if architecture_type == 'MARS':
+        mars_scores = mean_paper_result_list[-1, 6:]
+    else:
+        pointnet_scores = mean_paper_result_list[-1, 6:]
+        mars_scores = np.load('model/Accuracy/MARS_accuracy.npy')[-1, 6:]
+
     # Add the average mae and loss to the list
     avg_mae_list.append(np.mean(avg_mae))
     print(f"Average Training MAE for {n} conv layers: {np.mean(avg_mae)}")
@@ -283,6 +302,8 @@ for n in num_layers:
     # Export the Accuracy
     output_path = output_direct + "Accuracy"
     output_filename = output_path + "/MARS_accuracy_" + str(n)
+    if architecture_type == 'POINTNET':
+        output_filename = output_path + "/PointNet_accuracy"
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     np.save(output_filename + ".npy", mean_paper_result_list)
@@ -297,3 +318,7 @@ if architecture_type == 'MARS':
         plt_layers.plot_conv()
     elif validation_type == "dense":
         plt_layers.plot_dense()
+
+if architecture_type == 'POINTNET':
+    # Plot the results for the PointNet architecture
+    plot_barchart(mars_scores, pointnet_scores)

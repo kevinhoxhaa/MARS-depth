@@ -7,6 +7,7 @@ from keras.api.layers import Conv1D
 from keras.api.layers import GlobalMaxPooling1D
 from keras.api.layers import Reshape
 from keras.api.layers import Dot
+import matplotlib.pyplot as plt
 
 from orthogonal_regularizer import OrthogonalRegularizer
 '''
@@ -33,7 +34,8 @@ def pointnet_model(num_points, num_features, num_classes):
     # Fully connected layers
     fc_512 = dense_layer(global_features, filters=512, name="fc_512")
     fc_256 = dense_layer(fc_512, filters=256, name="fc_256")
-    outputs = Dense(num_classes, activation="linear", name="outputs")(fc_256)
+    fc_128 = dense_layer(fc_256, filters=128, name="fc_128")
+    outputs = Dense(num_classes, activation="linear", name="outputs")(fc_128)
 
     model = keras.Model(input_points, outputs)
     opt = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.5)
@@ -80,3 +82,22 @@ def T_net(inputs, num_features, name):
         transformed_features
     )
     return Dot(axes=(2, 1), name=f"{name}_mm")([inputs, transformed_features])
+
+def plot_barchart(mars_scores, pointnet_scores):
+    '''
+    Plot the bar chart of the MAEs of the Mars and PointNet models
+    '''
+    # Plot the bar chart of the MAEs and RMSEs of the Mars and PointNet models
+    plt.figure(figsize=(10, 5))
+    x = np.arange(len(mars_scores))
+    plt.bar(x - 0.175, mars_scores, 0.35)
+    plt.bar(x + 0.175, pointnet_scores, 0.35)
+    plt.xticks(x, ['MAE', 'RMSE'])
+    plt.legend(['Mars', 'PointNet'])
+
+    plt.title('MARS with CNN vs PointNet Comparison')
+    plt.xlabel('Error Metric')
+    plt.ylabel('Distance (cm)')
+    plt.savefig('model/plots/model_comparison.png')
+    plt.show()
+    plt.close()
