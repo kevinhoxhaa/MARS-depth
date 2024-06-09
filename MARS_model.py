@@ -2,6 +2,7 @@
 """
 @author: kevinhoxhaa
 """
+import sklearn.preprocessing
 
 """
 import all the necessary packages
@@ -26,6 +27,7 @@ from keras.api.layers import Flatten
 from keras.api.layers import Conv2D
 from keras.api.layers import BatchNormalization
 from keras.api.layers import Dropout
+from keras.api.callbacks import EarlyStopping
 
 # Get the PointNet model
 from pointnet import pointnet_model
@@ -63,18 +65,95 @@ validation_type = 'dense'
 
 # If you are using the PointNet architecture, set the architecture_type to 'POINTNET'
 # If you are using the MARS architecture, set the architecture_type to 'MARS'
-architecture_type = 'POINTNET'
+architecture_type = 'MARS'
 
-if architecture_type == 'POINTNET':
-    # Reshape the feature maps from 8x8x5 to 64x5
+def add_gausian_noise(data, mean=0, std=0.01):
+    """
+    Add Gaussian noise to the data.
+    """
+    noise = np.random.normal(mean, std, data.shape)
+    return data + noise
+
+# def random_rotation(point_cloud):
+#     """ Rotate the point cloud along the z-axis randomly for each instance """
+#     theta = np.random.uniform(0, 2 * np.pi)  # Random rotation angle
+#     rotation_matrix = np.array([
+#         [np.cos(theta), -np.sin(theta), 0],
+#         [np.sin(theta), np.cos(theta), 0],
+#         [0, 0, 1]  # Rotation matrix for z-axis
+#     ])
+#
+#     # Apply the rotation only to the x, y, z coordinates (first three features)
+#     xyz = point_cloud[:, :3]  # This should be a (64, 3) array
+#     rotated_xyz = np.dot(xyz, rotation_matrix)  # Apply rotation
+#
+#     # Combine the rotated coordinates with the original other features
+#     rotated_data = np.hstack((rotated_xyz, point_cloud[:, 3:]))  # Combine the rotated xyz with other features
+#
+#     return rotated_data
+
+def random_scaling(point_cloud, min_scale=0.9, max_scale=1.1):
+    """ Scale the point cloud by a random factor """
+    scale = np.random.uniform(min_scale, max_scale)
+    return point_cloud * scale
+
+def preprocess_data(featuremap_train, featuremap_validate, featuremap_test, labels_train, labels_validate, labels_test):
+    """
+    Preprocess the data by reshaping, normalizing, augmenting the feature maps, and shuffling.
+    """
+    # STEP 1: Reshape the feature maps from 8x8x5 to 64x5
     featuremap_train = np.reshape(featuremap_train, (-1, 64, 5))
     featuremap_validate = np.reshape(featuremap_validate, (-1, 64, 5))
     featuremap_test = np.reshape(featuremap_test, (-1, 64, 5))
 
-    # Shuffle the data
-    np.random.shuffle(featuremap_train)
-    np.random.shuffle(featuremap_validate)
-    np.random.shuffle(featuremap_test)
+    # STEP 2: Data Augmentation: Scaling
+    # featuremap_train = np.array([random_scaling(fm) for fm in featuremap_train])
+
+    # STEP 3: Add noise to the feature maps
+    featuremap_train = add_gausian_noise(featuremap_train, mean=0, std=0.2 * np.std(featuremap_train))
+    featuremap_validate = add_gausian_noise(featuremap_validate, mean=0, std=0.2 * np.std(featuremap_validate))
+    featuremap_test = add_gausian_noise(featuremap_test, mean=0, std=0.2 * np.std(featuremap_test))
+
+    if architecture_type == 'POINTNET':
+        # STEP 4: Shuffle the feature maps the same way as the labels
+        perm = np.random.permutation(len(featuremap_train))
+        featuremap_train = featuremap_train[perm]
+        labels_train = labels_train[perm]
+
+        perm = np.random.permutation(len(featuremap_validate))
+        featuremap_validate = featuremap_validate[perm]
+        labels_validate = labels_validate[perm]
+
+        perm = np.random.permutation(len(featuremap_test))
+        featuremap_test = featuremap_test[perm]
+        labels_test = labels_test[perm]
+
+    if architecture_type == 'MARS':
+        # Get sorting indices for feature maps and apply to both feature maps and labels
+        indices_train = np.lexsort((featuremap_train[:, 0, 2], featuremap_train[:, 0, 1], featuremap_train[:, 0, 0]))
+        indices_validate = np.lexsort((featuremap_validate[:, 0, 2], featuremap_validate[:, 0, 1], featuremap_validate[:, 0, 0]))
+        indices_test = np.lexsort((featuremap_test[:, 0, 2], featuremap_test[:, 0, 1], featuremap_test[:, 0, 0]))
+
+        featuremap_train = featuremap_train[indices_train]
+        featuremap_validate = featuremap_validate[indices_validate]
+        featuremap_test = featuremap_test[indices_test]
+
+        labels_train = labels_train[indices_train]
+        labels_validate = labels_validate[indices_validate]
+        labels_test = labels_test[indices_test]
+
+
+        # STEP 1: Reshape the feature maps from 8x8x5 to 64x5
+        featuremap_train = np.reshape(featuremap_train, (-1, 8, 8, 5))
+        featuremap_validate = np.reshape(featuremap_validate, (-1, 8, 8, 5))
+        featuremap_test = np.reshape(featuremap_test, (-1, 8, 8, 5))
+
+    return featuremap_train, featuremap_validate, featuremap_test, labels_train, labels_validate, labels_test
+
+
+# Preprocess the data for the PointNet architecture
+# featuremap_train, featuremap_validate, featuremap_test, labels_train, labels_validate, labels_test = preprocess_data(
+#     featuremap_train, featuremap_validate, featuremap_test, labels_train, labels_validate, labels_test)
 
 
 # define the model
@@ -112,20 +191,21 @@ def define_CNN(in_shape, n_keypoints, num_conv_layers, num_dense_layers):
 
     # compile the model
     model.compile(loss='mse', optimizer=opt, metrics=['mae', 'mse', 'mape', keras.metrics.RootMeanSquaredError()])
+    # print(model.summary())
     return model
 
 
 # define the number of layers to test for MARS
 num_conv_layers = [2]
 # define the number of dense layers to test for MARS
-num_dense_layers = [2]
+num_dense_layers = [1]
 
 avg_mae_list = []
 avg_val_mae_list = []
 boxplot_mae_list = []
 avg_loss_list = []
 avg_val_loss_list = []
-boxplot_loss_list = []
+boxplot_rmse_list = []
 mars_scores = []
 pointnet_scores = []
 times = []
@@ -135,28 +215,29 @@ times = []
 # else, test the number of dense layers
 num_layers = num_conv_layers if validation_type == 'convolutional' else num_dense_layers
 for n in num_layers:
-    if validation_type == 'convolutional':
+    if validation_type == 'convolutional' and architecture_type == 'MARS':
         print('Number of Convolutional Layers:', n)
     else:
         print('Number of Dense Layers:', n)
 
     conv_times = []
     avg_mae = []
-    avg_val_mae = []
+    avg_test_mae = []
     avg_loss = []
     avg_val_loss = []
 
     # initialize the list for the boxplot
-    boxplot_loss_list.append([])
+    boxplot_rmse_list.append([])
     boxplot_mae_list.append([])
 
     # Repeat i iteration to get the average result
-    for i in range(1):
+    for i in range(10):
+        print('ITERATION:', i + 1)
         # instantiate the model
         if architecture_type == 'MARS':
             # If the architecture type is MARS, define the model with the given number of convolutional and dense layers
             if validation_type == 'convolutional':
-                keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 1)
+                keypoint_model = define_CNN(featuremap_train[0].shape, 57, n, 2)
             else:
                 keypoint_model = define_CNN(featuremap_train[0].shape, 57, 2, n)
         elif architecture_type == 'POINTNET':
@@ -164,6 +245,7 @@ for n in num_layers:
             keypoint_model = pointnet_model(64, 5, 57)
         # initial maximum error
         score_min = 10
+        early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
 
         start_time = time.time()
         history = keypoint_model.fit(featuremap_train, labels_train,
@@ -258,19 +340,19 @@ for n in num_layers:
         # save the best model so far
         if score_test[1] < score_min:
             if architecture_type == 'POINTNET':
-                keypoint_model.save(output_direct + 'PointNet.h5')
+                keypoint_model.save(output_direct + 'PointNet.keras')
             else:
-                keypoint_model.save(output_direct + 'MARS_' + str(n) + '.h5')
+                keypoint_model.save(output_direct + 'MARS_' + str(n) + '.keras')
             score_min = score_test[1]
 
-        avg_mae.append(history.history['mae'][-1])
-        avg_val_mae.append(history.history['val_mae'][-1])
+        # avg_mae.append(history.history['mae'][-1])
+        avg_test_mae.append(np.mean(avg_19_points_mae))
         avg_loss.append(history.history['loss'][-1])
         avg_val_loss.append(history.history['val_loss'][-1])
 
         # append the mae and loss for the boxplot
-        boxplot_mae_list[-1].append(history.history['val_mae'][-1])
-        boxplot_loss_list[-1].append(history.history['val_loss'][-1])
+        boxplot_mae_list[-1].append(np.mean(avg_19_points_mae))
+        boxplot_rmse_list[-1].append(np.mean(avg_19_points_rmse))
 
     times.append(np.mean(conv_times))
 
@@ -295,7 +377,7 @@ for n in num_layers:
     # Add the average mae and loss to the list
     avg_mae_list.append(np.mean(avg_mae))
     print(f"Average Training MAE for {n} conv layers: {np.mean(avg_mae)}")
-    avg_val_mae_list.append(np.mean(avg_val_mae))
+    avg_val_mae_list.append(np.mean(avg_test_mae))
     avg_loss_list.append(np.mean(avg_loss))
     avg_val_loss_list.append(np.mean(avg_val_loss))
 
@@ -309,10 +391,20 @@ for n in num_layers:
     np.save(output_filename + ".npy", mean_paper_result_list)
     np.savetxt(output_filename + ".txt", mean_paper_result_list, fmt='%.2f')
 
+    boxplot_mae_list = np.array(boxplot_mae_list)
+    boxplot_rmse_list = np.array(boxplot_rmse_list)
+
+    # Export the MAE and Loss
+    np.save(output_filename + "_mae.npy", boxplot_mae_list)
+    np.savetxt(output_filename + "_mae.txt", boxplot_mae_list, fmt='%.2f')
+
+    np.save(output_filename + "_rmse.npy", boxplot_rmse_list)
+    np.savetxt(output_filename + "_rmse.txt", boxplot_rmse_list, fmt='%.2f')
+
 if architecture_type == 'MARS':
     # Plot the results for the number of layers
     plt_layers = PlotLayers(num_conv_layers, num_dense_layers, avg_val_mae_list, avg_val_loss_list,
-                            boxplot_mae_list, boxplot_loss_list, times)
+                            boxplot_mae_list, boxplot_rmse_list, times)
 
     if validation_type == "convolutional":
         plt_layers.plot_conv()
@@ -322,3 +414,4 @@ if architecture_type == 'MARS':
 if architecture_type == 'POINTNET':
     # Plot the results for the PointNet architecture
     plot_barchart(mars_scores, pointnet_scores)
+
