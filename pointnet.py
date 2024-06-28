@@ -57,9 +57,6 @@ def dense_layer(x, filters, name):
 def T_net(inputs, num_features, name):
     """
     Reference: https://keras.io/examples/vision/pointnet/#build-a-model.
-
-    The `filters` values come from the original paper:
-    https://arxiv.org/abs/1612.00593.
     """
     # Initialise bias as the identity matrix
     bias = keras.initializers.Constant(np.eye(num_features).flatten())
