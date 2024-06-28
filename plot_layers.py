@@ -52,33 +52,6 @@ class PlotLayers:
         plt.show()
         plt.close()
 
-        # Plot the boxplots of the MAEs across different numbers of convolutional layers
-        plt.figure(figsize=(10, 5))
-        bplot = plt.boxplot(self.boxplot_mae_list, patch_artist=True)
-        plt.title('Model Validation MAE by Number of Convolutional Layers')
-        plt.xlabel('Number of Convolutional Layers')
-        plt.ylabel('MAE')
-        plt.xticks(self.num_conv_layers)
-        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
-        for patch, color in zip(bplot['boxes'], colors):
-            patch.set_facecolor(color)
-        plt.savefig('model/plots/boxplot_mae.png')
-        plt.show()
-        plt.close()
-
-        # Plot the boxplots of the Losses across different numbers of convolutional layers
-        plt.figure(figsize=(10, 5))
-        bplot = plt.boxplot(self.boxplot_loss_list, patch_artist=True)
-        plt.title('Model Validation Loss by Number of Convolutional Layers')
-        plt.xlabel('Number of Convolutional Layers')
-        plt.ylabel('Loss')
-        plt.xticks(self.num_conv_layers)
-        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
-        for patch, color in zip(bplot['boxes'], colors):
-            patch.set_facecolor(color)
-        plt.savefig('model/plots/boxplot_loss.png')
-        plt.show()
-        plt.close()
 
     def plot_dense(self):
         '''
@@ -120,38 +93,11 @@ class PlotLayers:
         plt.show()
         plt.close()
 
-        # Plot the boxplots of the MAEs across different numbers of dense layers
-        plt.figure(figsize=(10, 5))
-        bplot = plt.boxplot(self.boxplot_mae_list, patch_artist=True)
-        plt.title('Model Validation MAE by Number of Dense Layers')
-        plt.xlabel('Number of Dense Layers')
-        plt.ylabel('MAE')
-        plt.xticks(self.num_dense_layers)
-        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
-        for patch, color in zip(bplot['boxes'], colors):
-            patch.set_facecolor(color)
-        plt.savefig('model/plots/boxplot_mae.png')
-        plt.show()
-        plt.close()
-
-        # Plot the boxplots of the Losses across different numbers of dense layers
-        plt.figure(figsize=(10, 5))
-        bplot = plt.boxplot(self.boxplot_loss_list, patch_artist=True)
-        plt.title('Model Validation Loss by Number of Dense Layers')
-        plt.xlabel('Number of Dense Layers')
-        plt.ylabel('Loss')
-        plt.xticks(self.num_dense_layers)
-        colors = ['lightblue', 'lightgreen', 'lightpink', 'lightyellow']
-        for patch, color in zip(bplot['boxes'], colors):
-            patch.set_facecolor(color)
-        plt.savefig('model/plots/boxplot_loss.png')
-        plt.show()
-        plt.close()
 
 def plot_boxplots():
-    '''
+    """
     Plot the boxplots of the MAEs and Losses across different numbers of convolutional and dense layers
-    '''
+    """
     # Load the data
     mae_boxplots = [
         100 * np.load('model/Accuracy/normal_MARS/MARS_accuracy_2_mae.npy')[0],
@@ -175,7 +121,7 @@ def plot_boxplots():
 
     # Positions for the groups
     positions_A = np.array([1, 1.75, 2.5])
-    positions_B = np.array([3.5, 4.25, 5])
+    positions_B = np.array([4, 4.75, 5.5])
 
     # Create boxplots for Group A
     for pos, data, color in zip(positions_A, mae_boxplots, colors):
@@ -200,15 +146,13 @@ def plot_boxplots():
     ax.legend(handles=legend_elements, loc='upper right')
 
     # Draw a vertical line between the two groups to separate them visually
-    ax.axvline(x=3, color='grey', linestyle='--', linewidth=2)  # Adjust 'x' as necessary to align with your plot
+    ax.axvline(x=3.25, color='grey', linestyle='--', linewidth=2)
 
     # Final plot adjustments
     ax.set_title('Error Comparison Between Models')
     ax.set_ylabel('Error (cm)')
     ax.set_xlabel('Error Metric')
-    # ax.grid(axis='y')
+
     # Show plot
     plt.show()
     plt.close()
-
-plot_boxplots()

@@ -6,17 +6,17 @@ from keras.api.layers import BatchNormalization
 from keras.api.layers import Conv1D
 from keras.api.layers import GlobalMaxPooling1D
 from keras.api.layers import Reshape
-from keras.api.layers import Dot, Dropout
-from keras.api.layers import Flatten
+from keras.api.layers import Dot
 import matplotlib.pyplot as plt
 
-from orthogonal_regularizer import OrthogonalRegularizer
 '''
 This code was inspired by the following sources:
 - https://keras.io/examples/vision/pointnet/#build-a-model
-- https://github.com/keras-team/keras-io/blob/master/examples/vision/pointnet_segmentation.py
+- https://github.com/keras-team/keras-io/blob/master/examples/vision/pointnet.py
 '''
 
+
+# Define the PointNet model
 def pointnet_model(num_points, num_features, num_classes):
     input_points = keras.layers.Input(shape=(num_points, num_features))
 
@@ -31,7 +31,6 @@ def pointnet_model(num_points, num_features, num_classes):
 
     global_features = GlobalMaxPooling1D(name="global_features")(features_512)
 
-
     # Fully connected layers
     fc_256 = dense_layer(global_features, filters=256, name="fc_256")
     fc_128 = dense_layer(fc_256, filters=128, name="fc_128")
@@ -42,7 +41,6 @@ def pointnet_model(num_points, num_features, num_classes):
     opt = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.5)
     # compile the model
     model.compile(loss='mse', optimizer=opt, metrics=['mae', 'mse', 'mape', keras.metrics.RootMeanSquaredError()])
-    print(model.summary())
     return model
 
 
@@ -65,7 +63,6 @@ def T_net(inputs, num_features, name):
     """
     # Initialise bias as the identity matrix
     bias = keras.initializers.Constant(np.eye(num_features).flatten())
-    # reg = OrthogonalRegularizer(num_features)
 
     x = conv_layer(inputs, filters=64, name=f"{name}_1")
     x = conv_layer(x, filters=128, name=f"{name}_2")
@@ -78,7 +75,6 @@ def T_net(inputs, num_features, name):
         num_features * num_features,
         kernel_initializer="zeros",
         bias_initializer=bias,
-        # activity_regularizer=reg,
         name=f"{name}_final",
     )(x)
     transformed_features = Reshape((num_features, num_features))(
@@ -119,7 +115,6 @@ def plot_all_barchart():
     """
     model_scores = [
         np.load('model/Accuracy/normal_MARS/MARS_accuracy.npy')[-1, 6:],  # Model 1 scores
-        # np.load('model/Accuracy/optimal_MARS/MARS_accuracy.npy')[-1, 6:],  # Model 2 scores
         np.load('model/Accuracy/optimal_MARS/MARS_accuracy.npy')[-1, 6:],  # Model 3 scores
         np.load('model/Accuracy/pointnet/PointNet_accuracy.npy')[-1, 6:]  # Model 4 scores
     ]
@@ -148,5 +143,3 @@ def plot_all_barchart():
     plt.show()
     plt.close()
 
-
-# plot_all_barchart()
