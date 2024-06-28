@@ -1,3 +1,5 @@
+## This repository is part of the TU Delft course CSE3000 Research Project 2024/Q4.
+The link for the research paper can be found [here](https://repository.tudelft.nl/islandora/object/uuid%3A745cde3c-b8e4-4f4e-8832-2a29745ba4ae?collection=education).
 # MARS
 **MARS: mmWave-based Assistive Rehabilitation System for Smart Healthcare**
 
